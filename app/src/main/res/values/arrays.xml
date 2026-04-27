@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="start_report_queries">
+        <item>Manta starten</item>
+        <item>Bericht starten</item>
+        <item>Report starten</item>
+        <item>Öffne Manta</item>
+    </string-array>
+</resources>

@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <!-- Built-in Intent: "Hey Google, öffne Manta" -->
+    <capability android:name="actions.intent.OPEN_APP_FEATURE">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.unisg.hands_free_incident_report_smartglasses"
+            android:targetClass="com.unisg.hands_free_incident_report_smartglasses.MainActivity">
+            <parameter android:name="feature" android:key="feature"/>
+        </intent>
+    </capability>
+
+    <!-- Custom Intent: "Hey Google, Manta starten" -->
+    <capability
+        android:name="custom.actions.intent.START_REPORT"
+        app:queryPatterns="@array/start_report_queries">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.unisg.hands_free_incident_report_smartglasses"
+            android:targetClass="com.unisg.hands_free_incident_report_smartglasses.MainActivity" />
+    </capability>
+
+    <shortcut
+        android:shortcutId="start_report_shortcut"
+        android:shortcutShortLabel="@string/app_name"
+        android:shortcutLongLabel="@string/start_report_phrase">
+        <capability-binding android:key="custom.actions.intent.START_REPORT" />
+        <capability-binding android:key="actions.intent.OPEN_APP_FEATURE">
+            <parameter-binding
+                android:key="feature"
+                android:value="@string/app_name" />
+        </capability-binding>
+    </shortcut>
+
+</shortcuts>
