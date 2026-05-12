@@ -1,7 +1,6 @@
 package com.unisg.hands_free_incident_report_smartglasses
 
 import android.content.Context
-import android.graphics.Bitmap
 import com.meta.wearable.dat.camera.StreamSession
 import com.meta.wearable.dat.camera.startStreamSession
 import com.meta.wearable.dat.camera.types.StreamConfiguration
@@ -9,7 +8,7 @@ import com.meta.wearable.dat.camera.types.StreamSessionState
 import com.meta.wearable.dat.camera.types.VideoQuality
 import com.meta.wearable.dat.core.Wearables
 import com.meta.wearable.dat.core.selectors.AutoDeviceSelector
-import com.unisg.hands_free_incident_report_smartglasses.stream.YuvToBitmapConverter
+import com.meta.wearable.dat.camera.types.VideoFrame
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -22,13 +21,13 @@ class WearablesManager(private val context: Context) {
     private var stateJob: Job? = null
     private val scope = CoroutineScope(Dispatchers.IO)
 
-    suspend fun startStream(onFrame: (Bitmap) -> Unit) {
+    suspend fun startStream(onFrame: (VideoFrame) -> Unit, onStop: () -> Unit) {
         val streamSession = Wearables.startStreamSession(
             context = context,
             deviceSelector = AutoDeviceSelector(),
             streamConfiguration = StreamConfiguration(
                 videoQuality = VideoQuality.HIGH,
-                frameRate = 24,
+                frameRate = 30,
             ),
         )
         session = streamSession
@@ -36,24 +35,27 @@ class WearablesManager(private val context: Context) {
         // Collect video frames
         frameJob = scope.launch {
             streamSession.videoStream.collect { frame ->
-                // Convert VideoFrame to Bitmap and pass upstream
-                val bitmap = YuvToBitmapConverter.convert(
-                    yuvData = frame.buffer,
-                    width = frame.width,
-                    height = frame.height
-                )
-                if(bitmap != null){
-                    onFrame(bitmap)
-                }
+                onFrame(frame)
             }
         }
 
         // Monitor session state
         stateJob = scope.launch {
-            streamSession.state.collect { state ->
-                if (state == StreamSessionState.STOPPED || state == StreamSessionState.CLOSED) {
-                    stopStream()
+            var lastState: StreamSessionState? = null
+            streamSession.state.collect { currentState ->
+                android.util.Log.d("WearablesManager", "Stream state: $currentState (last: $lastState)")
+                
+                // Only trigger stop/upload if we transitioned to a final state from a different state
+                if ((currentState == StreamSessionState.STOPPED || currentState == StreamSessionState.CLOSED) &&
+                    lastState != null && lastState != currentState) {
+                    
+                    if (session != null) {
+                        session = null // Clear session before calling onStop to prevent loops
+                        onStop()
+                        stopStream()
+                    }
                 }
+                lastState = currentState
             }
         }
     }

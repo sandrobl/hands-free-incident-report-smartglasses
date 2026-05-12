@@ -7,4 +7,20 @@
     <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+
+    <!-- Palette from User Image -->
+    <color name="palette_blue">#6D9AC4</color>
+    <color name="palette_green">#98BE59</color>
+    <color name="palette_lime">#DDF250</color>
+    <color name="palette_beige">#C0B1A5</color>
+    <color name="palette_off_white">#F4F4F0</color>
+
+    <!-- Semantic Mapping -->
+    <color name="app_background">@color/palette_off_white</color>
+    <color name="app_text_primary">#1A1A1A</color>
+
+    <!-- Material Mapping -->
+    <color name="colorPrimary">@color/palette_blue</color>
+    <color name="colorSecondary">@color/palette_green</color>
+    <color name="colorTertiary">@color/palette_lime</color>
 </resources>

@@ -16,6 +16,14 @@ uiAutomator = "2.3.0"
 testRules = "1.6.1"
 exifInterface = "1.3.7"
 media = "1.7.1"
+material = "1.10.0"
+auth0 = "3.14.0"
+playServicesLocation = "21.3.0"
+kotlinxCoroutines = "1.10.1"
+navigationFragmentKtx = "2.9.8"
+navigationUiKtx = "2.9.8"
+
+
 
 
 [libraries]
@@ -43,6 +51,10 @@ androidx-exifinterface = { group = "androidx.exifinterface", name = "exifinterfa
 kotlinx-collections-immutable = { group = "org.jetbrains.kotlinx", name = "kotlinx-collections-immutable", version.ref = "kotlinxCollectionsImmutable" }
 androidx-test-uiautomator = { group = "androidx.test.uiautomator", name = "uiautomator", version.ref = "uiAutomator" }
 androidx-test-rules = { group = "androidx.test", name = "rules", version.ref = "testRules" }
+auth0 = { group = "com.auth0.android", name = "auth0", version.ref = "auth0" }
+kotlinx-coroutines-play-services = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-play-services", version.ref = "kotlinxCoroutines" }
+kotlinx-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "kotlinxCoroutines" }
+
 
 # MW DAT Libraries
 mwdat-core = { group = "com.meta.wearable", name = "mwdat-core", version.ref = "mwdat" }
@@ -52,6 +64,11 @@ mwdat-mockdevice = { group = "com.meta.wearable", name = "mwdat-mockdevice", ver
 # Aliases for convenience if needed, matching what's in build.gradle.kts
 androidx-material3 = { group = "androidx.compose.material3", name = "material3" }
 androidx-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
+play-services-location = { group = "com.google.android.gms", name = "play-services-location", version.ref = "playServicesLocation" }
+androidx-navigation-fragment-ktx = { group = "androidx.navigation", name = "navigation-fragment-ktx", version.ref = "navigationFragmentKtx" }
+androidx-navigation-ui-ktx = { group = "androidx.navigation", name = "navigation-ui-ktx", version.ref = "navigationUiKtx" }
+
+material = { group = "com.google.android.material", name = "material", version.ref = "material" }
 
 
 [plugins]

@@ -8,9 +8,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -19,21 +21,27 @@ import androidx.compose.ui.unit.sp
 
 @Preview
 @Composable
-fun HomeScreen(onStopClick: () -> Unit = {}) {
-    // Added a default empty lambda to onStopClick to prevent NullPointerException during Preview rendering.
-    // Parameters in Composables annotated with @Preview must have default values or be provided by a wrapper Preview function.
+fun HomeScreen(
+    background: MutableState<Color> = androidx.compose.runtime.mutableStateOf(Color.White),
+    isConnected: MutableState<Boolean> = androidx.compose.runtime.mutableStateOf(false),
+    isRecording: MutableState<Boolean> = androidx.compose.runtime.mutableStateOf(false),
+    onStopClick: () -> Unit = {}
+) {
+    val textColor = if (background.value.luminance() > 0.5f) Color.Black else Color.White
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Red)
+            .background(background.value)
             .size(250.dp)
             .clickable(onClick = onStopClick),
         contentAlignment = Alignment.Center
     ) {
+        val recordingText = if (isRecording.value) "Recording: ON" else "Recording: OFF"
+        val connectionText = if (isConnected.value) "Glasses: Connected" else "Glasses: Disconnected"
         Text(
-            text = "STOP RECORDING",
-            color = Color.White,
-            fontSize = 40.sp,
+            text = "$connectionText\n$recordingText\nSTOP RECORDING",
+            color = textColor,
+            fontSize = 24.sp,
             fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center
         )

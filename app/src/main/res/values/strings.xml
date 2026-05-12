@@ -1,5 +1,5 @@
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-    <string name="app_name">Manta</string>
+    <string name="app_name">Manta Report</string>
 
     <string name="register_button_title" description="Connect App">Connect my glasses</string>
     <string name="unregister_button_title" description="Disconnect App">Disconnect</string>
@@ -12,6 +12,15 @@
     <string name="home_tip_audio" description="Tip about audio">Hear notifications while keeping your ears open to the world around you.</string>
     <string name="home_tip_hands" description="Tip about hands free">Stay hands-free while you move through your day. Move freely, stay connected.</string>
     <string name="home_redirect_message" description="Redirect message">You\'ll be redirected to the Meta AI app to confirm your connection.</string>
+
+    <string name="first_fragment_label">First Fragment</string>
+    <string name="second_fragment_label">Second Fragment</string>
+    <string name="next">Next</string>
+    <string name="previous">Previous</string>
+    <string name="take_photo">Take Photo</string>
+    <string name="start_capture">Start Capture</string>
+    <string name="stop_capture">Stop Capture</string>
+    <string name="compass_display">Compass: %1$d° %2$s</string>
 
     <!-- Stream Screen -->
     <string name="live_stream" description="Live Stream">Live stream</string>

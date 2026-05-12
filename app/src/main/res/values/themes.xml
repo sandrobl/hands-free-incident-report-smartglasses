@@ -1,5 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <style name="Theme.Handsfreeincidentreportsmartglasses" parent="android:Theme.Material.Light.NoActionBar" />
+
+    <style name="Theme.Handsfreeincidentreportsmartglasses" parent="Theme.Material3.Light.NoActionBar">
+        <!-- Main colors -->
+        <item name="colorPrimary">@color/palette_blue</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorPrimaryContainer">@color/palette_blue</item>
+        <item name="colorOnPrimaryContainer">@color/white</item>
+
+        <item name="colorSecondary">@color/palette_green</item>
+        <item name="colorOnSecondary">@color/white</item>
+        <item name="colorSecondaryContainer">@color/palette_beige</item>
+        <item name="colorOnSecondaryContainer">@color/black</item>
+
+        <item name="android:windowBackground">@color/palette_off_white</item>
+        <item name="colorSurface">@color/palette_off_white</item>
+        <item name="colorOnSurface">@color/black</item>
+        <item name="colorSurfaceVariant">@color/palette_off_white</item>
+        <item name="colorOnSurfaceVariant">@color/black</item>
+
+        <item name="android:statusBarColor">@color/palette_off_white</item>
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
+
 </resources>

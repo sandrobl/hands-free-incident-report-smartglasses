@@ -2,6 +2,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Required for Android 12+ to access bonded Bluetooth devices -->
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
     <uses-feature android:name="android.hardware.camera.any" />
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
@@ -20,10 +23,8 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Handsfreeincidentreportsmartglasses">
 
-        <!-- Replace the 0 placeholder with your Application ID, found in the Wearables Developer Center -->
-        <meta-data android:name="com.meta.wearable.mwdat.APPLICATION_ID" android:value="0" />
-        <!-- Replace the 0 and 1 placeholders with Your Application ID and Client Token, respectively, also found in the Wearables Developer Center -->
-        <meta-data android:name="com.meta.wearable.mwdat.CLIENT_TOKEN" android:value="AR|0|1" />
+        <meta-data android:name="com.meta.wearable.mwdat.APPLICATION_ID" android:value="997777452766707" />
+        <meta-data android:name="com.meta.wearable.mwdat.CLIENT_TOKEN" android:value="AR|997777452766707|e8878515334b2aaee476f437372ea34f" />
 
 
         <activity
@@ -42,6 +43,14 @@
                 android:resource="@xml/shortcuts" />
 
         </activity>
+
+        <receiver
+            android:name="androidx.media.session.MediaButtonReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.MEDIA_BUTTON" />
+            </intent-filter>
+        </receiver>
     </application>
 
 </manifest>
