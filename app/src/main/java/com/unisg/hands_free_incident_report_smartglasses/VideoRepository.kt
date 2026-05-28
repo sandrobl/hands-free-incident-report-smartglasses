@@ -55,7 +55,10 @@ class VideoRepository(
         runCatching {
             val encryptedData = encryptVideo(videoUri)
             val token = credentialsManager.awaitCredentials().accessToken
+            
+            // Get reportId from the backend's new_report endpoint
             val reportId = createReport(token)
+            
             val location = fetchLocation()
             val orientation = fetchOrientation()
             uploadVideo(token, reportId, encryptedData, location, orientation)

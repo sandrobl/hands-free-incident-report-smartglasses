@@ -3,8 +3,12 @@ package com.unisg.hands_free_incident_report_smartglasses
 import android.content.Context
 import android.media.*
 import android.media.MediaCodec.BufferInfo
+import android.os.Handler
+import android.os.Looper
 import android.os.SystemClock
 import android.util.Log
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
 import java.io.File
 import java.nio.ByteBuffer
 
@@ -33,8 +37,12 @@ class VideoFileEncoder(private val context: Context) {
     
     private val pendingSamples = mutableListOf<Pair<Int, PendingSample>>()
     private data class PendingSample(val data: ByteArray, val info: BufferInfo)
+    
+    private val lock = Any()
+    private var isReleased = false
 
-    fun start() {
+    fun start() = synchronized(lock) {
+        isReleased = false
         outputFile = File(context.cacheDir, "report_${System.currentTimeMillis()}.mp4")
         videoTrack = -1
         audioTrack = -1
@@ -47,14 +55,15 @@ class VideoFileEncoder(private val context: Context) {
         Log.d(TAG, "Recording started: ${outputFile?.absolutePath}")
     }
 
-    fun addFrame(yuvBuffer: ByteBuffer, width: Int, height: Int, pts: Long) {
+    fun addFrame(yuvBuffer: ByteBuffer, width: Int, height: Int, pts: Long) = synchronized(lock) {
+        if (isReleased) return@synchronized
         if (firstFramePts == -1L) {
             firstFramePts = pts
             firstFrameSystemTimeUs = SystemClock.elapsedRealtimeNanos() / 1000
         }
         
         if (videoCodec == null) setupVideoEncoder(width, height)
-        val codec = videoCodec ?: return
+        val codec = videoCodec ?: return@synchronized
         
         val inputIndex = codec.dequeueInputBuffer(10_000)
         if (inputIndex >= 0) {
@@ -67,9 +76,10 @@ class VideoFileEncoder(private val context: Context) {
         drainEncoder(codec, true)
     }
 
-    fun addAudio(data: ByteArray) {
-        if (firstFrameSystemTimeUs == -1L) return
-        val codec = audioCodec ?: return
+    fun addAudio(data: ByteArray) = synchronized(lock) {
+        if (isReleased) return@synchronized
+        if (firstFrameSystemTimeUs == -1L) return@synchronized
+        val codec = audioCodec ?: return@synchronized
         val inputIndex = codec.dequeueInputBuffer(10_000)
         if (inputIndex >= 0) {
             val inputBuffer = codec.getInputBuffer(inputIndex)!!
@@ -82,15 +92,60 @@ class VideoFileEncoder(private val context: Context) {
         drainEncoder(codec, false)
     }
 
-    fun finish(): File? {
-        videoCodec?.let { signalEndOfStream(it); drainEncoder(it, true); it.stop(); it.release() }
-        audioCodec?.let { signalEndOfStream(it); drainEncoder(it, false); it.stop(); it.release() }
-        if (!muxerStarted && (videoTrack != -1 || audioTrack != -1)) {
-            muxer?.start(); muxerStarted = true; writePending()
+    fun finish(): File? = synchronized(lock) {
+        if (isReleased) return null
+        isReleased = true
+        
+        videoCodec?.let { 
+            try {
+                signalEndOfStream(it)
+                drainEncoder(it, true)
+                it.stop()
+            } catch (e: Exception) {
+                Log.e(TAG, "Error stopping video codec", e)
+            } finally {
+                it.release()
+            }
         }
-        muxer?.let { try { if (muxerStarted) it.stop() } catch (e: Exception) {} ; it.release() }
+        audioCodec?.let { 
+            try {
+                signalEndOfStream(it)
+                drainEncoder(it, false)
+                it.stop()
+            } catch (e: Exception) {
+                Log.e(TAG, "Error stopping audio codec", e)
+            } finally {
+                it.release()
+            }
+        }
+        
+        if (!muxerStarted && (videoTrack != -1 || audioTrack != -1)) {
+            try {
+                muxer?.start()
+                muxerStarted = true
+                writePending()
+            } catch (e: Exception) {
+                Log.e(TAG, "Error starting muxer in finish()", e)
+            }
+        }
+        
+        muxer?.let { 
+            try { 
+                if (muxerStarted) it.stop() 
+            } catch (e: Exception) {
+                Log.e(TAG, "Error stopping muxer", e)
+            } finally {
+                it.release() 
+            }
+        }
+        
         val result = outputFile
-        videoCodec = null; audioCodec = null; muxer = null
+        videoCodec = null
+        audioCodec = null
+        muxer = null
+        videoTrack = -1
+        audioTrack = -1
+        muxerStarted = false
         return result
     }
 
@@ -101,7 +156,6 @@ class VideoFileEncoder(private val context: Context) {
             if (outputIndex == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
                 if (muxer == null) {
                     muxer = MediaMuxer(outputFile!!.absolutePath, MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4)
-                    //muxer!!.setOrientationHint(90)
                 }
                 val track = muxer!!.addTrack(codec.outputFormat)
                 if (isVideo) videoTrack = track else audioTrack = track
@@ -140,7 +194,15 @@ class VideoFileEncoder(private val context: Context) {
             setInteger(MediaFormat.KEY_PROFILE, MediaCodecInfo.CodecProfileLevel.HEVCProfileMain)
             setInteger(MediaFormat.KEY_LEVEL, MediaCodecInfo.CodecProfileLevel.HEVCMainTierLevel41)
         }
-        videoCodec = MediaCodec.createEncoderByType(MIME_VIDEO).apply { configure(format, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE); start() }
+        
+        // Ensure creation on Main Thread to associate with stable Main Looper
+        // Use runOnMainThread helper to avoid deadlock if already on Main
+        videoCodec = runOnMainThread {
+            MediaCodec.createEncoderByType(MIME_VIDEO).apply { 
+                configure(format, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE)
+                start() 
+            }
+        }
     }
 
     private fun setupAudioEncoder() {
@@ -148,7 +210,23 @@ class VideoFileEncoder(private val context: Context) {
             setInteger(MediaFormat.KEY_BIT_RATE, BIT_RATE_AUDIO)
             setInteger(MediaFormat.KEY_AAC_PROFILE, MediaCodecInfo.CodecProfileLevel.AACObjectLC)
         }
-        audioCodec = MediaCodec.createEncoderByType(MIME_AUDIO).apply { configure(format, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE); start() }
+        
+        // Ensure creation on Main Thread to associate with stable Main Looper
+        audioCodec = runOnMainThread {
+            MediaCodec.createEncoderByType(MIME_AUDIO).apply { 
+                configure(format, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE)
+                start() 
+            }
+        }
+    }
+
+    private fun <T> runOnMainThread(block: () -> T): T {
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            return block()
+        }
+        return runBlocking(Dispatchers.Main) {
+            block()
+        }
     }
 
     private fun signalEndOfStream(codec: MediaCodec) {

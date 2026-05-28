@@ -9,18 +9,19 @@ import android.util.Log
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import com.meta.wearable.dat.core.Wearables
 
 class MainActivity : AppCompatActivity() {
 
-    private val requiredPermissions = arrayOf(
-        Manifest.permission.CAMERA,
-        Manifest.permission.RECORD_AUDIO,
-        Manifest.permission.ACCESS_FINE_LOCATION,
-        Manifest.permission.ACCESS_COARSE_LOCATION
-    )
-
     private fun getSystemPermissions(): Array<String> {
-        val perms = mutableListOf(*requiredPermissions)
+        val perms = mutableListOf(
+            Manifest.permission.CAMERA,
+            Manifest.permission.RECORD_AUDIO,
+            Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.ACCESS_COARSE_LOCATION,
+            Manifest.permission.BLUETOOTH,
+            Manifest.permission.BLUETOOTH_ADMIN
+        )
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             perms.add(Manifest.permission.BLUETOOTH_CONNECT)
             perms.add(Manifest.permission.BLUETOOTH_SCAN)
@@ -32,28 +33,35 @@ class MainActivity : AppCompatActivity() {
         ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
         val allGranted = permissions.entries.all { it.value }
+        if (allGranted) {
+            Log.d("IncidentReportApp", "All system permissions granted. Initializing SDK...")
+            initializeWearables()
+        } else {
+            Log.e("IncidentReportApp", "Not all permissions granted: $permissions")
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        //Check all the permissions and request if needed
-        if (!hasPermissions()) {
-            permissionCheckLauncher.launch(getSystemPermissions())
-        }
-
         setContentView(R.layout.activity_main)
+
+        if (!hasPermissions()) {
+            Log.d("IncidentReportApp", "Requesting system permissions...")
+            permissionCheckLauncher.launch(getSystemPermissions())
+        } else {
+            initializeWearables()
+        }
+    }
+
+    private fun initializeWearables() {
+        Wearables.initialize(this).onFailure { error, _ ->
+            Log.e("IncidentReportApp", "Failed to initialize Wearables SDK: ${error.toString()}")
+        }
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        setIntent(intent) // This is crucial for HomeFragment to see the new action
-    }
-
-    override fun onStart() {
-        super.onStart()
-        // First, ensure the app has necessary Android permissions
-        permissionCheckLauncher.launch(getSystemPermissions())
+        setIntent(intent)
     }
 
     private fun hasPermissions(): Boolean {

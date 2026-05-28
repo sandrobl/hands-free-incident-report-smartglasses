@@ -1,7 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
+
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.BLUETOOTH" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
     <!-- Required for Android 12+ to access bonded Bluetooth devices -->
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
     <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
@@ -13,7 +16,13 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
 
+    <queries>
+        <package android:name="com.facebook.stella" />
+        <package android:name="com.facebook.orca" />
+    </queries>
+
     <application
+        android:name=".IncidentReportApplication"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -23,9 +32,17 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Handsfreeincidentreportsmartglasses">
 
-        <meta-data android:name="com.meta.wearable.mwdat.APPLICATION_ID" android:value="997777452766707" />
-        <meta-data android:name="com.meta.wearable.mwdat.CLIENT_TOKEN" android:value="AR|997777452766707|e8878515334b2aaee476f437372ea34f" />
+        <meta-data
+            android:name="com.meta.wearable.mwdat.ANALYTICS_OPT_OUT"
+            android:value="true" />
 
+        <meta-data
+            android:name="com.meta.wearable.mwdat.APPLICATION_ID"
+            android:value="1634657320983818" />
+
+        <meta-data
+            android:name="com.meta.wearable.mwdat.CLIENT_TOKEN"
+            android:value="AR|1634657320983818|51ed18aacb10d93d5e77b86164e358d1" />
 
         <activity
             android:name="com.unisg.hands_free_incident_report_smartglasses.MainActivity"
@@ -34,14 +51,15 @@
             android:theme="@style/Theme.Handsfreeincidentreportsmartglasses">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-
-            <meta-data
-                android:name="android.app.shortcuts"
-                android:resource="@xml/shortcuts" />
-
+            <!-- Meta SDK Registration Callback -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="mwdat-1634657320983818" />
+            </intent-filter>
         </activity>
 
         <receiver

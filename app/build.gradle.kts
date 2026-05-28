@@ -80,6 +80,7 @@ dependencies {
     implementation(libs.androidx.core.google.shortcuts)
     implementation(libs.mwdat.core)
     implementation(libs.mwdat.camera)
+    implementation(libs.mwdat.display)
     implementation(libs.mwdat.mockdevice)
     implementation(libs.auth0)
     implementation(libs.kotlinx.coroutines.play.services)

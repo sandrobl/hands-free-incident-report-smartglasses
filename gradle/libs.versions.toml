@@ -10,7 +10,7 @@ espressoCore = "3.6.1"
 lifecycle = "2.8.7"
 activityCompose = "1.10.0"
 composeBom = "2024.12.01"
-mwdat = "0.5.0"
+mwdat = "0.7.0"
 kotlinxCollectionsImmutable = "0.3.8"
 uiAutomator = "2.3.0"
 testRules = "1.6.1"
@@ -60,6 +60,7 @@ kotlinx-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-cor
 mwdat-core = { group = "com.meta.wearable", name = "mwdat-core", version.ref = "mwdat" }
 mwdat-camera = { group = "com.meta.wearable", name = "mwdat-camera", version.ref = "mwdat" }
 mwdat-mockdevice = { group = "com.meta.wearable", name = "mwdat-mockdevice", version.ref = "mwdat" }
+mwdat-display = { group = "com.meta.wearable", name = "mwdat-display", version.ref = "mwdat" }
 
 # Aliases for convenience if needed, matching what's in build.gradle.kts
 androidx-material3 = { group = "androidx.compose.material3", name = "material3" }

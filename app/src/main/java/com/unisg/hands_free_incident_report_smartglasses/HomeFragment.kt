@@ -1,21 +1,16 @@
 package com.unisg.hands_free_incident_report_smartglasses
 
-import android.Manifest
 import android.annotation.SuppressLint
 import android.app.AlertDialog
 import android.app.PendingIntent
-import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.media.AudioAttributes
 import android.media.AudioFocusRequest
 import android.media.AudioManager
-import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.provider.MediaStore
 import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import android.util.Log
@@ -26,11 +21,6 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.mutableStateOf
-import androidx.core.content.ContextCompat
-import androidx.core.content.PermissionChecker
-import androidx.core.content.pm.ShortcutInfoCompat
-import androidx.core.content.pm.ShortcutManagerCompat
-import androidx.core.graphics.drawable.IconCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
@@ -40,40 +30,27 @@ import androidx.media.session.MediaButtonReceiver
 import androidx.navigation.fragment.findNavController
 import com.auth0.android.Auth0
 import com.auth0.android.authentication.AuthenticationAPIClient
-import com.auth0.android.authentication.AuthenticationException
 import com.auth0.android.authentication.storage.CredentialsManager
-import com.auth0.android.authentication.storage.CredentialsManagerException
 import com.auth0.android.authentication.storage.SharedPreferencesStorage
 import com.auth0.android.callback.Callback
 import com.auth0.android.provider.WebAuthProvider
 import com.auth0.android.result.Credentials
+import com.auth0.android.authentication.AuthenticationException
+import com.auth0.android.authentication.storage.CredentialsManagerException
 import com.google.android.material.snackbar.Snackbar
 import com.meta.wearable.dat.core.Wearables
 import com.meta.wearable.dat.core.types.Permission
 import com.meta.wearable.dat.core.types.PermissionStatus
 import com.meta.wearable.dat.core.types.RegistrationState
 import com.unisg.hands_free_incident_report_smartglasses.databinding.FragmentHomeBinding
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.net.HttpURLConnection
 import java.net.URL
-import java.text.SimpleDateFormat
 import java.util.Locale
-import java.util.concurrent.ExecutorService
-import java.util.concurrent.Executors
-import kotlin.compareTo
-import kotlin.getValue
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.ui.graphics.Color
-
-import androidx.appcompat.app.AppCompatActivity
-
-import androidx.lifecycle.lifecycleScope
-
-import com.unisg.hands_free_incident_report_smartglasses.ui.HomeScreen
 import kotlinx.coroutines.CancellableContinuation
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -104,7 +81,7 @@ class HomeFragment : Fragment() {
     }
 
     private val recordingStatus = mutableStateOf(RecordingStatus.IDLE)
-    private var startJob: kotlinx.coroutines.Job? = null
+    private var startJob: Job? = null
 
     private lateinit var account: Auth0
     private lateinit var credentialsManager: CredentialsManager
@@ -153,43 +130,48 @@ class HomeFragment : Fragment() {
         val authClient = AuthenticationAPIClient(account)
         credentialsManager = CredentialsManager(authClient, SharedPreferencesStorage(requireContext()))
 
-        // Observe status to handle UI navigation/messages
-        /*viewModel.uploadStatus.observe(viewLifecycleOwner) { result ->
-            result?.let {
-                it.onSuccess {
-                    showSnackBar("Upload Successful!")
-                }.onFailure { error ->
-                    if (error is CredentialsManagerException) {
-                        findNavController().navigate(R.id.action_home_to_login)
-                    } else {
-                        showSnackBar("Upload Failed: ${error.message}")
-                    }
-                }
-                viewModel.resetStatus() // Clear status after handling
-            }
-        }*/
-
-        // Initialize Wearables SDK and related managers after system permissions granted
-        try {
-            Wearables.initialize(requireContext())
-        } catch (e: Exception) {
-            Log.e("Report", "Error initializing Wearables: $e")
-        }
-
+        // Initialize related managers after system permissions granted
         wearablesManager = WearablesManager(requireContext())
         audioRecorder = GlassesAudioRecorder(requireContext())
         videoEncoder = VideoFileEncoder(requireContext())
 
         setupMediaSession()
         startVolumePolling()
-        pushDynamicShortcut()
 
         // Observe Wearables devices after initialization
         lifecycleScope.launch {
+            // Wait for Wearables to be initialized to avoid crash on startup
+            while (true) {
+                try {
+                    Wearables.registrationState
+                    break
+                } catch (e: Exception) {
+                    kotlinx.coroutines.delay(500)
+                }
+            }
+
             try {
                 Wearables.devices.collect { devices ->
-                    Log.d("Report", "Wearables.devices emitted count=${devices.size} -> $devices")
+                    Log.d("Report", "Wearables.devices count=${devices.size} -> $devices")
                     isGlassesConnected.value = devices.isNotEmpty()
+                    
+                    devices.forEach { deviceId ->
+                        // Observe metadata for each device
+                        lifecycleScope.launch {
+                            Wearables.devicesMetadata[deviceId]?.collect { metadata ->
+                                Log.d("Report", "Device $deviceId Metadata: Name='${metadata.name}', Type=${metadata.deviceType}, Compatibility=${metadata.compatibility}")
+                            }
+                        }
+                    }
+                    activity?.runOnUiThread {
+                        if (_binding != null) {
+                            binding.tvHomeTitle.text = if (devices.isNotEmpty()) {
+                                "Connected (${devices.size})"
+                            } else {
+                                "Incident Report"
+                            }
+                        }
+                    }
                 }
             } catch (e: Exception) {
                 Log.d("Report", "Failed to observe devices: $e")
@@ -203,15 +185,15 @@ class HomeFragment : Fragment() {
                 Wearables.registrationState.collect { state ->
                     Log.d("Report", "Wearables.registrationState -> $state")
                     when (state) {
-                        is RegistrationState.Registered -> Log.d("Report", "App registered with Meta")
-                        is RegistrationState.Available -> {
+                        RegistrationState.REGISTERED -> Log.d("Report", "App registered with Meta")
+                        RegistrationState.AVAILABLE -> {
                             Log.d("Report", "App is available - starting Meta registration flow")
                             if (!registrationRequested) {
                                 registrationRequested = true
                                 Wearables.startRegistration(requireActivity())
                             }
                         }
-                        is RegistrationState.Unavailable -> Log.d("Report", "App is UNREGISTERED - call Wearables.startRegistration()")
+                        RegistrationState.UNAVAILABLE -> Log.d("Report", "App is UNREGISTERED - call Wearables.startRegistration()")
                         else -> Log.d("Report", "RegistrationState: $state")
                     }
                 }
@@ -234,8 +216,21 @@ class HomeFragment : Fragment() {
 
         checkIntentAndStart(requireActivity().intent)
 
-        // binding.imageCaptureButton.setOnClickListener { takePhoto() }
-        binding.testButton.setOnClickListener { callPrivateApi() }
+        binding.testButton.setOnClickListener { 
+            // Force a clean registration state
+            Log.d("Report", "Force re-register button clicked")
+            try {
+                Wearables.startUnregistration(requireActivity())
+                // Small delay to let unregistration settle
+                lifecycleScope.launch {
+                    kotlinx.coroutines.delay(1000)
+                    Wearables.startRegistration(requireActivity())
+                }
+                showSnackBar("Clearing SDK state and opening Meta pairing...")
+            } catch (e: Exception) {
+                Log.e("Report", "Force re-register failed: ${e.message}")
+            }
+        }
         binding.btnLogout.setOnClickListener { logout() }
         binding.useExisting.setOnClickListener { pickVideoLauncher.launch("video/*")}
     }
@@ -305,15 +300,12 @@ class HomeFragment : Fragment() {
                             }
                         }
                     }
-                    // Consume all media button events (including ACTION_UP) to suppress system sounds
                     return true
                 }
                 return super.onMediaButtonEvent(mediaButtonEvent)
             }
         })
 
-
-        // Request focus early so media buttons route to this session.
         requestAudioFocus()
     }
 
@@ -389,7 +381,7 @@ class HomeFragment : Fragment() {
         if (recordingStatus.value != RecordingStatus.IDLE) {
             return
         }
-        // Update lastMusicVolume to current to avoid immediate re-trigger from polling
+
         if (::audioManager.isInitialized) {
             lastMusicVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
         }
@@ -428,15 +420,20 @@ class HomeFragment : Fragment() {
 
     @SuppressLint("MissingPermission")
     private fun startReport() {
-
+        Log.d("Report", "startReport() called - status: ${recordingStatus.value}")
+        Log.d("Report", "Registration State: ${Wearables.registrationState.value}")
+        
         requestAudioFocus()
         mediaSession.isActive = true
 
         startJob = lifecycleScope.launch {
             try {
-                // Check Wearable Camera Permission
-                val cameraStatus = Wearables.checkPermissionStatus(Permission.CAMERA).getOrNull()
-                if (cameraStatus != PermissionStatus.Granted) {
+                Log.d("Report", "Checking wearable permissions...")
+                
+                // Camera Permission
+                val cameraResult = Wearables.checkPermissionStatus(Permission.CAMERA)
+                if (cameraResult.getOrNull() != PermissionStatus.Granted) {
+                    Log.d("Report", "Requesting wearable camera permission")
                     val result = requestWearablesPermission(Permission.CAMERA)
                     if (result != PermissionStatus.Granted) {
                         Log.e("Report", "Wearable camera permission denied")
@@ -444,9 +441,22 @@ class HomeFragment : Fragment() {
                         return@launch
                     }
                 }
+                
+                // Microphone Permission
+                val micResult = Wearables.checkPermissionStatus(Permission.MICROPHONE)
+                if (micResult.getOrNull() != PermissionStatus.Granted) {
+                    Log.d("Report", "Requesting wearable microphone permission")
+                    val result = requestWearablesPermission(Permission.MICROPHONE)
+                    if (result != PermissionStatus.Granted) {
+                        Log.e("Report", "Wearable microphone permission denied")
+                        recordingStatus.value = RecordingStatus.IDLE
+                        return@launch
+                    }
+                }
 
+                Log.d("Report", "Permissions verified. Attempting to start wearables stream...")
                 videoEncoder.start()
-                wearablesManager.startStream(
+                val streamResult = wearablesManager.startStream(
                     onFrame = { frame ->
                         videoEncoder.addFrame(
                             yuvBuffer = frame.buffer,
@@ -456,22 +466,32 @@ class HomeFragment : Fragment() {
                         )
                     },
                     onStop = {
+                        Log.d("Report", "WearablesManager triggered onStop")
                         activity?.runOnUiThread { stopReportIfActive() }
                     }
                 )
 
+                if (streamResult.isFailure) {
+                    val error = streamResult.exceptionOrNull()
+                    Log.e("Report", "Failed to start wearables stream: ${error?.message}")
+                    
+                    activity?.runOnUiThread {
+                        showSnackBar("Glasses error: ${error?.message}")
+                    }
+                    
+                    videoEncoder.finish()
+                    recordingStatus.value = RecordingStatus.IDLE
+                    return@launch
+                }
+
+                Log.d("Report", "Stream started successfully. Starting audio recorder...")
                 audioRecorder.start { data ->
                     videoEncoder.addAudio(data)
                 }
                 recordingStatus.value = RecordingStatus.RECORDING
             } catch (e: Exception) {
-                Log.e("Report", "Error starting report", e)
+                Log.e("Report", "Critical error in startReport coroutine", e)
                 recordingStatus.value = RecordingStatus.IDLE
-            } finally {
-                // If we are still in STARTING state (e.g. cancelled before completion), revert to IDLE
-                if (recordingStatus.value == RecordingStatus.STARTING) {
-                    recordingStatus.value = RecordingStatus.IDLE
-                }
             }
         }
     }
@@ -481,69 +501,62 @@ class HomeFragment : Fragment() {
         stopVolumePolling()
     }
 
-
-
-
-
     private fun stopAndUpload() {
-        if (recordingStatus.value == RecordingStatus.STOPPING || recordingStatus.value == RecordingStatus.IDLE) {
+        val currentStatus = recordingStatus.value
+        if (currentStatus == RecordingStatus.IDLE || currentStatus == RecordingStatus.STOPPING) {
             return
         }
+        
+        Log.d("Report", "stopAndUpload() - PERFORMING HARD KILL (Current state: $currentStatus)")
+        
+        // 1. Force state to STOPPING immediately to prevent double-stop
         recordingStatus.value = RecordingStatus.STOPPING
 
+        // 2. Kill the start-up coroutine immediately
         startJob?.cancel()
         startJob = null
+        
+        // 3. Hardware Hard-Stop (Immediate Main Thread)
+        try {
+            wearablesManager.stopStream()
+            audioRecorder.stop()
+        } catch (e: Exception) {
+            Log.e("Report", "Error during immediate hardware stop: ${e.message}")
+        }
 
         audioFocusRequest?.let {
             audioManager.abandonAudioFocusRequest(it)
         }
 
-        lifecycleScope.launch {
+        // 4. Finalize file in background thread to avoid UI hang
+        lifecycleScope.launch(Dispatchers.IO) {
             try {
-                wearablesManager.stopStream()
-                audioRecorder.stop()
+                // videoEncoder.finish() is synchronous and can block; keep it here
                 val outputFile = videoEncoder.finish()
-                if (outputFile != null) {
-                    Log.d("Report", "Done: $outputFile")
-                    val mediaUri = videoEncoder.saveToMediaStore("DCIM/Incident-Reports")
-
-                    // Call VideoRepository to send the media file to the right api
-                    //val result = MockApiClient.upload(outputFile)
-                    //result.onSuccess { id -> Log.d("Report", "Done: $id") }
-                    if (mediaUri != null){
-                        viewModel.sendVideo(mediaUri)
-                    }else{
-                        Log.e("Report", "No output file produced; skipping upload")
+                if (outputFile != null && outputFile.exists()) {
+                    Log.d("Report", "Hard Kill finalized file: ${outputFile.name}")
+                    videoEncoder.saveToMediaStore("DCIM/Incident-Reports")?.let { uri ->
+                        viewModel.sendVideo(uri)
                     }
-
-                } else {
-                    Log.w("Report", "No output file produced; skipping upload")
                 }
+            } catch (e: Exception) {
+                Log.e("Report", "Hard Kill cleanup error: ${e.message}")
             } finally {
-                recordingStatus.value = RecordingStatus.IDLE
+                // FORCE IDLE no matter what happened during cleanup
+                withContext(Dispatchers.Main) {
+                    recordingStatus.value = RecordingStatus.IDLE
+                    Log.d("Report", "HARD KILL COMPLETE - State: IDLE")
+                }
             }
         }
     }
 
-    private fun pushDynamicShortcut() {
-        val shortcut = ShortcutInfoCompat.Builder(requireContext(), "start_report_shortcut")
-            .setShortLabel("Manta")
-            .setLongLabel("Manta starten")
-            .setIcon(IconCompat.createWithResource(requireContext(), R.drawable.camera_access_icon))
-            .setIntent(
-                Intent(requireContext(), MainActivity::class.java).apply {
-                    action = Intent.ACTION_VIEW
-                }
-            )
-            .addCapabilityBinding("actions.intent.OPEN_APP_FEATURE", "feature", listOf("manta"))
-            .addCapabilityBinding("custom.actions.intent.START_REPORT")
-            .build()
-
-        ShortcutManagerCompat.pushDynamicShortcut(
-            requireContext(), shortcut)
-    }
-
     private fun logout() {
+        try {
+            Wearables.startUnregistration(requireActivity())
+        } catch (e: Exception) {
+            Log.e("Report", "Failed to start unregistration: ${e.message}")
+        }
         WebAuthProvider
             .logout(account)
             .withScheme(getString(R.string.com_auth0_scheme))
@@ -605,14 +618,6 @@ class HomeFragment : Fragment() {
         })
     }
 
-    private val activityResultLauncher =
-        registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
-            val granted = permissions.entries.all { it.value }
-            if(!granted){
-                Toast.makeText(requireContext(), "Permission request denied", Toast.LENGTH_SHORT).show()
-            }
-        }
-
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
@@ -631,7 +636,5 @@ class HomeFragment : Fragment() {
 
     companion object {
         private const val TAG = "CameraXApp"
-        private const val FILENAME_FORMAT = "yyyy-MM-dd-HH-mm-ss-SSS"
-
     }
 }
