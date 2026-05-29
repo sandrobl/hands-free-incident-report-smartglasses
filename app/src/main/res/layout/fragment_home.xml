@@ -48,6 +48,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Test API"
+            android:visibility="invisible"
             android:textColor="@color/black"
             app:strokeColor="@color/palette_beige" />
 
@@ -81,7 +82,7 @@
         android:layout_marginBottom="62dp"
         android:height="62dp"
         android:maxWidth="150dp"
-        android:text="You can now swipe :)"
+        android:text="Register app mit Meta"
         android:backgroundTint="@color/palette_blue"
         android:textColor="@color/white"
         app:layout_constraintBottom_toBottomOf="parent"
@@ -105,5 +106,35 @@
 
 
         />
+
+    <View
+        android:id="@+id/image_border_top"
+        android:layout_width="0dp"
+        android:layout_height="1dp"
+        android:background="@color/light_gray"
+        app:layout_constraintBottom_toTopOf="@id/imageView"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <ImageView
+        android:id="@+id/imageView"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:adjustViewBounds="true"
+        app:layout_constrainedHeight="true"
+        app:layout_constraintBottom_toTopOf="@id/compass_values"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/topBar"
+        app:srcCompat="@drawable/illustration_description" />
+
+    <View
+        android:id="@+id/image_border_bottom"
+        android:layout_width="0dp"
+        android:layout_height="1dp"
+        android:background="@color/light_gray"
+        app:layout_constraintTop_toBottomOf="@id/imageView"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -7,6 +7,7 @@
     <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+    <color name="light_gray">#D3D3D3</color>
 
     <!-- Palette from User Image -->
     <color name="palette_blue">#6D9AC4</color>

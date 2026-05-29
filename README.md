@@ -34,6 +34,57 @@ Declared in [app/src/main/AndroidManifest.xml](app/src/main/AndroidManifest.xml)
 - Kotlin JVM target: 17
 - Compose and ViewBinding enabled
 
+## External dependencies
+
+Versions are defined in [gradle/libs.versions.toml](gradle/libs.versions.toml).
+
+### Runtime
+
+- androidx.core:core-ktx 1.15.0
+- androidx.lifecycle:lifecycle-runtime-ktx 2.8.7
+- androidx.activity:activity-compose 1.10.0
+- androidx.media:media 1.7.1
+- com.google.android.material:material 1.10.0
+- androidx.compose:compose-bom 2024.12.01 (platform)
+- androidx.compose.ui:ui (from Compose BOM)
+- androidx.compose.ui:ui-graphics (from Compose BOM)
+- androidx.compose.ui:ui-tooling-preview (from Compose BOM)
+- androidx.compose.material3:material3 (from Compose BOM)
+- androidx.lifecycle:lifecycle-runtime-compose 2.8.7
+- androidx.lifecycle:lifecycle-viewmodel-compose 2.8.7
+- androidx.compose.material:material-icons-extended (from Compose BOM)
+- com.google.android.gms:play-services-location 21.3.0
+- androidx.navigation:navigation-fragment-ktx 2.9.8
+- androidx.navigation:navigation-ui-ktx 2.9.8
+- androidx.exifinterface:exifinterface 1.3.7
+- org.jetbrains.kotlinx:kotlinx-collections-immutable 0.3.8
+- androidx.core:core-google-shortcuts 1.1.0
+- com.meta.wearable:mwdat-core 0.7.0
+- com.meta.wearable:mwdat-camera 0.7.0
+- com.meta.wearable:mwdat-display 0.7.0
+- com.meta.wearable:mwdat-mockdevice 0.7.0
+- com.auth0.android:auth0 3.14.0
+- org.jetbrains.kotlinx:kotlinx-coroutines-play-services 1.10.1
+
+### Test
+
+- junit:junit 4.13.2
+- androidx.test.ext:junit 1.2.1
+- androidx.test.espresso:espresso-core 3.6.1
+- androidx.compose.ui:ui-test-junit4 (from Compose BOM)
+- com.google.assistant.appactions:testing 1.0.0
+- androidx.test.uiautomator:uiautomator 2.3.0
+- androidx.test:rules 1.6.1
+- androidx.compose.ui:ui-tooling (from Compose BOM, debug)
+- androidx.compose.ui:ui-test-manifest (from Compose BOM, debug)
+
+### Build plugins
+
+- com.android.application 9.1.1
+- org.jetbrains.kotlin.android 2.2.10
+- org.jetbrains.kotlin.plugin.compose 2.2.10
+- org.gradle.toolchains.foojay-resolver-convention 1.0.0
+
 ## Notable code locations
 
 - Wearables stream setup and lifecycle: [app/src/main/java/com/unisg/hands_free_incident_report_smartglasses/WearablesManager.kt](app/src/main/java/com/unisg/hands_free_incident_report_smartglasses/WearablesManager.kt)

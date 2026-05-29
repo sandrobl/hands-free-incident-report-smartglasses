@@ -163,15 +163,6 @@ class HomeFragment : Fragment() {
                             }
                         }
                     }
-                    activity?.runOnUiThread {
-                        if (_binding != null) {
-                            binding.tvHomeTitle.text = if (devices.isNotEmpty()) {
-                                "Connected (${devices.size})"
-                            } else {
-                                "Incident Report"
-                            }
-                        }
-                    }
                 }
             } catch (e: Exception) {
                 Log.d("Report", "Failed to observe devices: $e")
@@ -185,16 +176,30 @@ class HomeFragment : Fragment() {
                 Wearables.registrationState.collect { state ->
                     Log.d("Report", "Wearables.registrationState -> $state")
                     when (state) {
-                        RegistrationState.REGISTERED -> Log.d("Report", "App registered with Meta")
-                        RegistrationState.AVAILABLE -> {
-                            Log.d("Report", "App is available - starting Meta registration flow")
-                            if (!registrationRequested) {
-                                registrationRequested = true
-                                Wearables.startRegistration(requireActivity())
-                            }
+                        RegistrationState.REGISTERED -> {
+                            Log.d("Report", "App registered with Meta")
+                            binding.videoCaptureButton.text = "Ready to Swipe"
+                            binding.videoCaptureButton.backgroundTintList = android.content.res.ColorStateList.valueOf(androidx.core.content.ContextCompat.getColor(requireContext(), R.color.palette_blue))
+                            binding.videoCaptureButton.setTextColor(androidx.core.content.ContextCompat.getColor(requireContext(), R.color.white))
                         }
-                        RegistrationState.UNAVAILABLE -> Log.d("Report", "App is UNREGISTERED - call Wearables.startRegistration()")
-                        else -> Log.d("Report", "RegistrationState: $state")
+                        RegistrationState.AVAILABLE -> {
+                            Log.d("Report", "App is available - waiting for user to start Meta registration flow")
+                            binding.videoCaptureButton.text = "register app with Meta"
+                            binding.videoCaptureButton.backgroundTintList = android.content.res.ColorStateList.valueOf(androidx.core.content.ContextCompat.getColor(requireContext(), R.color.palette_lime))
+                            binding.videoCaptureButton.setTextColor(androidx.core.content.ContextCompat.getColor(requireContext(), R.color.black))
+                        }
+                        RegistrationState.UNAVAILABLE -> {
+                            Log.d("Report", "App is UNREGISTERED - call Wearables.startRegistration()")
+                            binding.videoCaptureButton.text = "register app with Meta"
+                            binding.videoCaptureButton.backgroundTintList = android.content.res.ColorStateList.valueOf(androidx.core.content.ContextCompat.getColor(requireContext(), R.color.palette_lime))
+                            binding.videoCaptureButton.setTextColor(androidx.core.content.ContextCompat.getColor(requireContext(), R.color.black))
+                        }
+                        else -> {
+                            Log.d("Report", "RegistrationState: $state")
+                            binding.videoCaptureButton.text = "register app with Meta"
+                            binding.videoCaptureButton.backgroundTintList = android.content.res.ColorStateList.valueOf(androidx.core.content.ContextCompat.getColor(requireContext(), R.color.palette_lime))
+                            binding.videoCaptureButton.setTextColor(androidx.core.content.ContextCompat.getColor(requireContext(), R.color.black))
+                        }
                     }
                 }
             } catch (e: Exception) {
@@ -233,6 +238,11 @@ class HomeFragment : Fragment() {
         }
         binding.btnLogout.setOnClickListener { logout() }
         binding.useExisting.setOnClickListener { pickVideoLauncher.launch("video/*")}
+        binding.videoCaptureButton.setOnClickListener {
+            if (Wearables.registrationState.value != RegistrationState.REGISTERED) {
+                Wearables.startRegistration(requireActivity())
+            }
+        }
     }
 
 
